@@ -3,18 +3,18 @@ import { Toast, useToast } from "./Toast";
 
 export function App() {
   const [loading, setLoading] = createSignal(false);
-  const addToast = useToast();
+  const toast = useToast();
 
   const handleFileUpload = async (e: InputEvent) => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
     if (!token) {
-      addToast("No token in url", { severity: "error" });
+      toast.error("No token in url");
       return;
     }
     const files = (e.target as HTMLInputElement)?.files;
     if (!files) {
-      addToast("No file selected", { severity: "warn" });
+      toast.warn("No file selected");
       return;
     }
 
@@ -29,14 +29,12 @@ export function App() {
       });
 
       if (response.ok) {
-        addToast(`${files.length} Files uploaded successfully`);
+        toast.success(`${files.length} Files uploaded successfully`);
       } else {
-        addToast(`Uploading files failed: ${response.statusText}`, {
-          severity: "error",
-        });
+        toast.error(`Uploading files failed: ${response.statusText}`);
       }
     } catch (error) {
-      addToast(`Error uploading files: ${error}`, { severity: "error" });
+      toast.error(`Error uploading files: ${error}`);
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,7 @@ const [toasts, setToasts] = createSignal<Toast[]>([]);
 const randomId = () => Math.random().toString().slice(2);
 
 export const useToast = () => {
-  return (message: string, opts?: { severity: Severity }) => {
+  const addToast = (message: string, opts?: { severity: Severity }) => {
     const { severity } = opts ?? { severity: "success" };
     const id = randomId();
     setToasts((it) => [{ message, id, severity }, ...it]);
@@ -18,19 +18,26 @@ export const useToast = () => {
       setToasts((it) => it.filter((it) => it.id !== id));
     }, 5000);
   };
+
+  return {
+    info: (message: string) => addToast(message, { severity: "info" }),
+    warn: (message: string) => addToast(message, { severity: "warn" }),
+    error: (message: string) => addToast(message, { severity: "error" }),
+    success: (message: string) => addToast(message, { severity: "success" }),
+  };
 };
 
 function ToastChip({ message, severity }: Toast) {
   const icon = () => {
     switch (severity) {
       case "success":
-        return "✅";
+        return "🤩";
       case "error":
-        return "⛔️";
+        return "😭";
       case "info":
-        return "ℹ️";
+        return "💬";
       case "warn":
-        return "⚠️";
+        return "😱";
     }
   };
 

@@ -18,5 +18,7 @@ COPY --from=deps node_modules node_modules
 
 COPY --from=builder server/dist dist
 
+# TODO: install mongodb
+
 EXEC ["node", "dist/index.js"]
 
