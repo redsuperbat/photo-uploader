@@ -9,7 +9,8 @@
     "turbo": "^2.0.6"
   },
   "scripts": {
-    "dev": "turbo run dev"
+    "dev": "turbo run dev",
+    "build": "turbo run build"
   },
   "workspaces": [
     "client",

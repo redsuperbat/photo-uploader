@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch --env-file .env --import tsx/esm src/index.ts"
+    "dev": "node --watch --env-file .env --import tsx/esm src/index.ts",
+    "build": "tsc"
   },
   "author": "Max Netterberg",
   "license": "ISC",
@@ -12,7 +13,8 @@
     "@hono/node-server": "^1.11.4",
     "hono": "^4.4.10",
     "mongodb": "^6.8.0",
-    "swiss-log": "^0.1.10"
+    "swiss-log": "^0.1.10",
+    "@photo-uploader/client": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
