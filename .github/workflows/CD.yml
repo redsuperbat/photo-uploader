@@ -27,7 +27,7 @@ jobs:
           platforms: linux/amd64
 
       - name: Setup Terraform CLI
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Write kubeconfig to ~/.kube/config
         run: |
