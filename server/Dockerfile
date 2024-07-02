@@ -1,24 +1,30 @@
-FROM node-alpine:latest as deps
+# # # # #
+# DEPS  #
+# # # # #
+FROM node:lts-alpine as deps
 
 COPY . .
 
-RUN yarn
+RUN yarn install
 
+# # # # #
+# BUILD #
+# # # # #
+FROM node:lts-alpine as builder
 
-FROM node-alpine:latest as builder
+COPY . .
 
 COPY --from=deps node_modules node_modules
 
 RUN yarn build
 
-
-FROM node-alpine:latest as runner
+# # # # #
+#  RUN  #
+# # # # #
+FROM node:lts-alpine as runner
 
 COPY --from=deps node_modules node_modules
 
 COPY --from=builder server/dist dist
 
-# TODO: install mongodb
-
-EXEC ["node", "dist/index.js"]
-
+CMD ["node", "dist/index.js"]

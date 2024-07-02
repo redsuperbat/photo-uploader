@@ -50,19 +50,29 @@ export function App() {
       }}
     >
       <Toast />
-      <div
-        style={{
-          display: "flex",
-          "flex-direction": "column",
-          "justify-items": "center",
-        }}
-      >
-        <h1>Upload your images here 💅</h1>
-        <div style={{ height: "5rem" }}>
-          <Show when={!loading()} fallback={<span aria-busy="true"></span>}>
-            <input onInput={handleFileUpload} type="file" multiple />
-          </Show>
-        </div>
+      <input
+        id="upload"
+        style={{ display: "none" }}
+        onInput={handleFileUpload}
+        type="file"
+        multiple
+      />
+      <div style={{ height: "5rem" }}>
+        <Show when={!loading()} fallback={<span aria-busy="true"></span>}>
+          <h2>
+            <label
+              aria-label="upload"
+              for="upload"
+              style={{
+                "line-height": "20px",
+              }}
+            >
+              <div>📸📸📸</div>
+              <div>📸📸📸</div>
+              <div>📸📸📸</div>
+            </label>
+          </h2>
+        </Show>
       </div>
     </div>
   );
