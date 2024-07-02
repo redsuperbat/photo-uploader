@@ -1,8 +1,8 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
 import { Logger } from "swiss-log";
 import { TokenRepository } from "./TokenRepo.js";
-import { Hono } from "hono";
 
 import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -36,6 +36,14 @@ app.use((ctx, next) => {
   return next();
 });
 
+function extractFiles(files: string | File | (string | File)[]): File[] {
+  if (typeof files === "string") return [];
+  if (Array.isArray(files)) {
+    return files.filter((it) => typeof it === "object");
+  }
+  return [files];
+}
+
 app.post("/api/files/:token", async (ctx) => {
   const token = ctx.req.param("token");
   logger.info("token", { token });
@@ -44,9 +52,7 @@ app.post("/api/files/:token", async (ctx) => {
     return ctx.json({ message: "invalid token" }, 401);
   }
   const requestBody = await ctx.req.parseBody({ all: true });
-  const files: File[] = Object.values(requestBody["file"]).filter(
-    (it) => typeof it === "object",
-  );
+  const files = extractFiles(requestBody["file"]);
   logger.info("saving files", { numberOfFiles: files.length });
   await Promise.all(
     files.map((f) => {
