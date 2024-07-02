@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file .env --import tsx/esm src/index.ts",
-    "build": "tsc && mv dist/index.js dist/index.mjs"
+    "build": "tsc"
   },
   "author": "Max Netterberg",
   "license": "ISC",
