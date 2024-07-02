@@ -54,7 +54,7 @@ export function App() {
         id="upload"
         style={{ display: "none" }}
         onInput={handleFileUpload}
-        accept="image/*"
+        accept=".jpg,.jpeg,.png,.mp4"
         capture="filesystem"
         type="file"
         multiple
