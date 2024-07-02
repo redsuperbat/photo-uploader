@@ -6,3 +6,4 @@ dist
 received
 Dockerfile
 tokens
+.terraform

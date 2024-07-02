@@ -27,4 +27,6 @@ COPY --from=deps node_modules node_modules
 
 COPY --from=builder server/dist dist
 
+COPY package.json package.json
+
 CMD ["node", "dist/index.js"]

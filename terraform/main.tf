@@ -79,7 +79,7 @@ resource "kubernetes_service_v1" "svc" {
     port {
       protocol    = "TCP"
       port        = 3000
-      target_port = 3000
+      target_port = 44445
     }
   }
 }
