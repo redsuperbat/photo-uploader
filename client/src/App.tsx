@@ -65,6 +65,7 @@ export function App() {
               for="upload"
               style={{
                 "line-height": "20px",
+                cursor: "pointer",
               }}
             >
               <div>📸📸📸</div>
