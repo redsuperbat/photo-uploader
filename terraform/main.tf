@@ -16,7 +16,7 @@ provider "kubernetes" {
 }
 
 locals {
-  namespace = "rsb-apps"
+  namespace = "rsb-photoprism"
   name      = "rsb-photo-uploader"
   hosts = [
     "photos.netterberg.io",
@@ -121,7 +121,20 @@ resource "kubernetes_deployment_v1" "deploy" {
               memory = "250Mi"
             }
           }
+          volume_mount {
+            name       = "photoprism"
+            sub_path   = "./originals/external-uploads"
+            mount_path = "/received"
+          }
+
         }
+        volume {
+          name = "photoprism"
+          persistent_volume_claim {
+            claim_name = "photoprism"
+          }
+        }
+
       }
     }
   }
