@@ -8,11 +8,13 @@ export function App() {
   const handleFileUpload = async (e: InputEvent) => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
+    const target = e.target as HTMLInputElement;
+
     if (!token) {
       toast.error("No token in url");
       return;
     }
-    const files = (e.target as HTMLInputElement)?.files;
+    const files = target?.files;
     if (!files) {
       toast.warn("No file selected");
       return;
@@ -36,6 +38,8 @@ export function App() {
     } catch (error) {
       toast.error(`Error uploading files: ${error}`);
     } finally {
+      // This clears the list of files
+      target.value = "";
       setLoading(false);
     }
   };
@@ -55,7 +59,6 @@ export function App() {
         style={{ display: "none" }}
         onInput={handleFileUpload}
         accept=".jpg,.jpeg,.png,.mp4"
-        capture="filesystem"
         type="file"
         multiple
       />
