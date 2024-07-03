@@ -48,7 +48,7 @@ export function App() {
       return;
     }
     const xhr = new XMLHttpRequest();
-    xhr.timeout = 600_000; // 10 minutes
+    xhr.timeout = 1200_000; // 20 minutes
 
     const formData = new FormData();
     files.forEach((it) => formData.append("file", it));
@@ -65,14 +65,15 @@ export function App() {
       setProgress();
       target.value = "";
     };
+
     const handleError = (e: ProgressEvent) => {
       toast.error(`Uploading files failed: ${e.type}`);
       handleEnd();
     };
     const handleSuccess = () => {
       toast.success(`${files.length} Files uploaded successfully`);
-      refetch();
       handleEnd();
+      refetch();
     };
     xhr.upload.onloadend = handleSuccess;
     xhr.upload.onerror = handleError;
