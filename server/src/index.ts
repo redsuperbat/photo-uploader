@@ -8,6 +8,8 @@ import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { hash } from "node:crypto";
+import { MimeLookup } from "./mime.js";
 
 const logger = Logger.withDefaults();
 const port = parseInt(process.env.PORT ?? "44445");
@@ -29,6 +31,7 @@ if (!existsSync(tokenFilePath)) {
 const tokenRepo = new TokenRepository({
   tokenFilePath,
 });
+const mime = new MimeLookup();
 const app = new Hono();
 
 app.use((ctx, next) => {
@@ -44,6 +47,12 @@ function extractFiles(files: string | File | (string | File)[]): File[] {
   return [files];
 }
 
+function createFilename(f: File): string {
+  const name = hash("md5", f.name.concat(f.type).concat(f.size.toString()));
+  const ext = mime.lookup(f.type);
+  return `${name}.${ext}`;
+}
+
 app.post("/api/files/:token", async (ctx) => {
   const token = ctx.req.param("token");
   logger.info("token", { token });
@@ -56,7 +65,8 @@ app.post("/api/files/:token", async (ctx) => {
   logger.info("saving files", { numberOfFiles: files.length });
   await Promise.all(
     files.map((f) => {
-      const stream = createWriteStream(path.join(filePath, f.name));
+      const filename = createFilename(f);
+      const stream = createWriteStream(path.join(filePath, filename));
       return new Promise((res) =>
         Readable.from(f.stream()).pipe(stream).once("close", res),
       );

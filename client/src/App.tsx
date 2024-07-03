@@ -64,20 +64,16 @@ export function App() {
       />
       <div style={{ height: "5rem" }}>
         <Show when={!loading()} fallback={<span aria-busy="true"></span>}>
-          <h2>
-            <label
-              aria-label="upload"
-              for="upload"
-              style={{
-                "line-height": "20px",
-                cursor: "pointer",
-              }}
-            >
-              <div>📸📸📸</div>
-              <div>📸📸📸</div>
-              <div>📸📸📸</div>
-            </label>
-          </h2>
+          <label
+            aria-label="upload"
+            for="upload"
+            style={{
+              "line-height": "20px",
+              cursor: "pointer",
+            }}
+          >
+            <h2>Click to upload</h2>
+          </label>
         </Show>
       </div>
     </div>

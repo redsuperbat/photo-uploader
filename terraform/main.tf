@@ -16,8 +16,9 @@ provider "kubernetes" {
 }
 
 locals {
-  namespace = "rsb-photoprism"
-  name      = "rsb-photo-uploader"
+  namespace  = "rsb-photoprism"
+  name       = "rsb-photo-uploader"
+  config_pvc = "${local.name}-pvc"
   hosts = [
     "photos.netterberg.io",
   ]
@@ -85,6 +86,26 @@ resource "kubernetes_service_v1" "svc" {
 }
 
 
+resource "kubernetes_persistent_volume_claim_v1" "pvc" {
+  metadata {
+    name      = local.config_pvc
+    namespace = local.namespace
+    annotations = {
+      volume_type = "local"
+    }
+  }
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        storage = "10Mi"
+      }
+    }
+    storage_class_name = "local-path"
+  }
+  wait_until_bound = false
+}
+
 
 resource "kubernetes_deployment_v1" "deploy" {
   metadata {
@@ -110,6 +131,7 @@ resource "kubernetes_deployment_v1" "deploy" {
         container {
           name  = local.name
           image = "maxrsb/photo-uploader:${var.image_tag}"
+
           resources {
             requests = {
               cpu    = "20m"
@@ -121,13 +143,24 @@ resource "kubernetes_deployment_v1" "deploy" {
               memory = "250Mi"
             }
           }
+
+          env {
+            name  = "TOKEN_FILE"
+            value = "/config/tokens"
+          }
+
           volume_mount {
             name       = "photoprism"
             sub_path   = "./originals/external-uploads"
             mount_path = "/received"
           }
 
+          volume_mount {
+            name       = local.config_pvc
+            mount_path = "/config"
+          }
         }
+
         volume {
           name = "photoprism"
           persistent_volume_claim {
@@ -135,6 +168,12 @@ resource "kubernetes_deployment_v1" "deploy" {
           }
         }
 
+        volume {
+          name = local.config_pvc
+          persistent_volume_claim {
+            claim_name = local.config_pvc
+          }
+        }
       }
     }
   }
