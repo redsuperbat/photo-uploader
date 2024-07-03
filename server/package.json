@@ -11,11 +11,13 @@
   "license": "ISC",
   "dependencies": {
     "@hono/node-server": "^1.11.4",
+    "@photo-uploader/client": "*",
+    "fs-extra": "^11.2.0",
     "hono": "^4.4.10",
-    "swiss-log": "^0.1.10",
-    "@photo-uploader/client": "*"
+    "swiss-log": "^0.1.10"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.9",
     "tsx": "^4.16.0",
     "typescript": "^5.5.2"

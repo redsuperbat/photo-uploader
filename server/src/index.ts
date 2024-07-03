@@ -3,10 +3,10 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { Logger } from "swiss-log";
 import { TokenRepository } from "./TokenRepo.js";
+import { ensureDir, ensureFile } from "fs-extra";
 
-import { createWriteStream, existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createWriteStream } from "node:fs";
 import { Readable } from "node:stream";
 import { hash } from "node:crypto";
 import { MimeLookup } from "./mime.js";
@@ -17,16 +17,10 @@ const filePath = process.env.RECEVIED_FILE_PATH ?? "./received";
 const tokenFilePath = process.env.TOKEN_FILE ?? "./tokens";
 
 logger.info("ensuring received dir");
-if (!existsSync(filePath)) {
-  logger.info("received dir does not exist, creating it");
-  await mkdir(filePath);
-}
+await ensureDir(filePath);
 
 logger.info("ensuring token file");
-if (!existsSync(tokenFilePath)) {
-  logger.info("token file does not exist, creating it");
-  await writeFile(tokenFilePath, Buffer.from(""));
-}
+await ensureFile(tokenFilePath);
 
 const tokenRepo = new TokenRepository({
   tokenFilePath,
@@ -56,7 +50,7 @@ function createFilename(f: File): string {
 app.post("/api/files/:token", async (ctx) => {
   const token = ctx.req.param("token");
   logger.info("token", { token });
-  const exists = await tokenRepo.exists(token);
+  const exists = await tokenRepo.get(token);
   if (!exists) {
     return ctx.json({ message: "invalid token" }, 401);
   }
@@ -64,9 +58,11 @@ app.post("/api/files/:token", async (ctx) => {
   const files = extractFiles(requestBody["file"]);
   logger.info("saving files", { numberOfFiles: files.length });
   await Promise.all(
-    files.map((f) => {
+    files.map(async (f) => {
       const filename = createFilename(f);
-      const stream = createWriteStream(path.join(filePath, filename));
+      const filepath = path.join(filePath, exists.namespace, filename);
+      await ensureFile(filepath);
+      const stream = createWriteStream(filepath);
       return new Promise((res) =>
         Readable.from(f.stream()).pipe(stream).once("close", res),
       );

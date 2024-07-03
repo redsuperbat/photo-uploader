@@ -6,11 +6,15 @@ export class TokenRepository {
     this.#tokenFilePath = opts.tokenFilePath;
   }
 
-  async exists(token: string): Promise<boolean> {
+  async get(token: string): Promise<{ namespace: string }> {
     const tokens = await readFile(this.#tokenFilePath, "utf8");
-    return tokens
+    const entry = tokens
       .split("\n")
-      .map((it) => it.trim())
-      .some((it) => it === token);
+      .map((it) => {
+        const [token, namespace] = it.trim().split(":");
+        return { token, namespace };
+      })
+      .find((it) => it.token === token);
+    return entry;
   }
 }
