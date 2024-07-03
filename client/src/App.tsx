@@ -23,7 +23,7 @@ export function App() {
       return;
     }
     const xhr = new XMLHttpRequest();
-    xhr.timeout = 600_000; /// 10 minutes
+    xhr.timeout = 600_000; // 10 minutes
 
     const formData = new FormData();
     files.forEach((it) => formData.append("file", it));
@@ -71,7 +71,7 @@ export function App() {
         id="upload"
         style={{ display: "none" }}
         onInput={handleFileUpload}
-        accept=".jpg,.jpeg,.png,.mp4"
+        accept=".jpg,.jpeg,.png,.mp4,.mov"
         type="file"
         multiple
       />
@@ -97,7 +97,6 @@ export function App() {
             aria-label="upload"
             for="upload"
             style={{
-              "line-height": "20px",
               cursor: "pointer",
             }}
           >
