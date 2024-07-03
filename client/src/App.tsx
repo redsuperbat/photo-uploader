@@ -3,11 +3,24 @@ import { Toast, useToast } from "./Toast";
 
 const TOKEN_HEADER = "x-rsb-token";
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 Bytes";
+
+  const k = 1024;
+  const sizes = ["bytes", "kb", "mb", "gb", "tb"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  const size = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+  return `${size.toFixed(2)} ${sizes[i]}`;
+}
+
 export function App() {
   const [progress, setProgress] = createSignal<{
     total: number;
     current: number;
+    speed: string;
   }>();
+
   const toast = useToast();
   const [token, { refetch }] = createResource(async () => {
     const url = new URL(window.location.href);
@@ -47,6 +60,7 @@ export function App() {
       toast.warn("No file selected");
       return;
     }
+    const start = Date.now();
     const xhr = new XMLHttpRequest();
     xhr.timeout = 1200_000; // 20 minutes
 
@@ -54,11 +68,13 @@ export function App() {
     files.forEach((it) => formData.append("file", it));
 
     xhr.upload.onloadstart = (e) => {
-      setProgress({ total: e.total, current: 0 });
+      setProgress({ total: e.total, current: 0, speed: "0 kbs/s" });
     };
 
     xhr.upload.onprogress = (e) => {
-      setProgress({ total: 1, current: e.loaded / e.total });
+      const secondsSinceStart = (Date.now() - start) / 1000;
+      const speed = `${formatBytes(e.loaded / secondsSinceStart)}/s`;
+      setProgress({ total: 1, current: e.loaded / e.total, speed });
     };
 
     const handleEnd = () => {
@@ -123,7 +139,7 @@ export function App() {
                 "max-width": "900px",
               }}
             >
-              <p>Uploading...don't close this page!</p>
+              <p>Uploading...don't close this page! {progress()?.speed} </p>
               <progress value={progress()?.current} max={progress()?.total} />
             </div>
           }

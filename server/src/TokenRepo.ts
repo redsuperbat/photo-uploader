@@ -50,7 +50,6 @@ export class TokenRepository {
       token.lastUsed = partial.lastUsed;
     }
     const allTokens = await this.getAll();
-    console.log(allTokens);
     const replacedTokens = allTokens
       .map((it) => {
         if (it.id === id) {
