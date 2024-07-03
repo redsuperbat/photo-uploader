@@ -79,6 +79,13 @@ export function App() {
     xhr.upload.onabort = handleError;
     xhr.upload.ontimeout = handleError;
 
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status <= 200) return;
+      toast.error(`Uploading files failed: ${xhr.response}`);
+      handleEnd();
+    };
+
     xhr.open("POST", "/api/files", true);
     xhr.setRequestHeader(TOKEN_HEADER, token);
     xhr.send(formData);
