@@ -73,7 +73,7 @@ export function App() {
     const handleSuccess = () => {
       toast.success(`${files.length} Files uploaded successfully`);
       handleEnd();
-      refetch();
+      setTimeout(() => refetch(), 2000);
     };
     xhr.upload.onloadend = handleSuccess;
     xhr.upload.onerror = handleError;
