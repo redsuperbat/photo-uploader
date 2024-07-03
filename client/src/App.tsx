@@ -1,5 +1,7 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, createResource } from "solid-js";
 import { Toast, useToast } from "./Toast";
+
+const TOKEN_HEADER = "x-rsb-token";
 
 export function App() {
   const [progress, setProgress] = createSignal<{
@@ -7,6 +9,29 @@ export function App() {
     current: number;
   }>();
   const toast = useToast();
+  const [token, { refetch }] = createResource(async () => {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get("token");
+    if (!token) {
+      toast.error("No token in url");
+      return;
+    }
+
+    const response = await fetch("/api/files", {
+      headers: {
+        [TOKEN_HEADER]: token,
+      },
+    });
+    const body: { uploads: number; lastUsed: string } = await response.json();
+    return body;
+  });
+
+  const lastUsed = () => {
+    const lastUsed = token()?.lastUsed;
+    if (!lastUsed) return;
+    const date = new Date(lastUsed);
+    return date.toLocaleString();
+  };
 
   const handleFileUpload = async (e: InputEvent) => {
     const url = new URL(window.location.href);
@@ -46,6 +71,7 @@ export function App() {
     };
     const handleSuccess = () => {
       toast.success(`${files.length} Files uploaded successfully`);
+      refetch();
       handleEnd();
     };
     xhr.upload.onloadend = handleSuccess;
@@ -53,7 +79,8 @@ export function App() {
     xhr.upload.onabort = handleError;
     xhr.upload.ontimeout = handleError;
 
-    xhr.open("POST", `/api/files/${token}`, true);
+    xhr.open("POST", "/api/files", true);
+    xhr.setRequestHeader(TOKEN_HEADER, token);
     xhr.send(formData);
   };
 
@@ -98,9 +125,14 @@ export function App() {
             for="upload"
             style={{
               cursor: "pointer",
+              display: "flex",
+              "flex-direction": "column",
+              "align-items": "center",
             }}
           >
             <h2>Click to upload</h2>
+            <p>Number of uploads: {token()?.uploads}</p>
+            <p>Last upload {lastUsed()}</p>
           </label>
         </Show>
       </div>

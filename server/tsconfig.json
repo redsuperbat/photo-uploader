@@ -5,6 +5,7 @@
     "module": "NodeNext",
     "target": "ESNext",
     "moduleResolution": "NodeNext",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strict": true
   }
 }

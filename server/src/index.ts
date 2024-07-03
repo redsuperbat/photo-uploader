@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { Logger } from "swiss-log";
-import { TokenRepository } from "./TokenRepo.js";
+import { TokenRepository, TokenSerializer } from "./TokenRepo.js";
 import { ensureDir, ensureFile } from "fs-extra";
 
 import path from "node:path";
@@ -22,8 +22,10 @@ await ensureDir(filePath);
 logger.info("ensuring token file");
 await ensureFile(tokenFilePath);
 
+const serializer = new TokenSerializer();
 const tokenRepo = new TokenRepository({
   tokenFilePath,
+  serializer,
 });
 const mime = new MimeLookup();
 const app = new Hono();
@@ -47,20 +49,25 @@ function createFilename(f: File): string {
   return `${name}.${ext}`;
 }
 
-app.post("/api/files/:token", async (ctx) => {
-  const token = ctx.req.param("token");
-  logger.info("token", { token });
-  const exists = await tokenRepo.get(token);
-  if (!exists) {
+app.post("/api/files", async (ctx) => {
+  const tokenId = ctx.req.header("x-rsb-token");
+  if (!tokenId) {
     return ctx.json({ message: "invalid token" }, 401);
   }
+  logger.info("token", { token: tokenId });
+  const token = await tokenRepo.getById(tokenId);
+
+  if (!token) {
+    return ctx.json({ message: "invalid token" }, 401);
+  }
+
   const requestBody = await ctx.req.parseBody({ all: true });
   const files = extractFiles(requestBody["file"]);
   logger.info("saving files", { numberOfFiles: files.length });
   await Promise.all(
     files.map(async (f) => {
       const filename = createFilename(f);
-      const filepath = path.join(filePath, exists.namespace, filename);
+      const filepath = path.join(filePath, token.namespace, filename);
       await ensureFile(filepath);
       const stream = createWriteStream(filepath);
       return new Promise((res) =>
@@ -68,7 +75,29 @@ app.post("/api/files/:token", async (ctx) => {
       );
     }),
   );
+
+  await tokenRepo.update(tokenId, {
+    lastUsed: new Date(),
+    uploads: token.uploads + files.length,
+  });
+
   return ctx.json({ message: "ok" }, 200);
+});
+
+app.get("/api/files", async (ctx) => {
+  const tokenId = ctx.req.header("x-rsb-token");
+  if (!tokenId) {
+    return ctx.json({ message: "invalid token" }, 401);
+  }
+  logger.info("token", { tokenId });
+  const token = await tokenRepo.getById(tokenId);
+
+  if (!token) {
+    return ctx.json({ message: "invalid token" }, 401);
+  }
+
+  logger.info("getting token", { tokenId });
+  return ctx.json(token);
 });
 
 app.use("*", serveStatic({ root: "./dist/client", index: "index.html" }));
