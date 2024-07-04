@@ -35,14 +35,6 @@ app.use((ctx, next) => {
   return next();
 });
 
-function extractFiles(files: string | File | (string | File)[]): File[] {
-  if (typeof files === "string") return [];
-  if (Array.isArray(files)) {
-    return files.filter((it) => typeof it === "object");
-  }
-  return [files];
-}
-
 function createFilename(f: File): string {
   const name = hash("md5", f.name.concat(f.type).concat(f.size.toString()));
   const ext = mime.lookup(f.type);
@@ -60,9 +52,9 @@ app.post("/api/files", async (ctx) => {
   if (!token) {
     return ctx.json({ message: "invalid token" }, 401);
   }
+  const formData = await ctx.req.formData();
+  const files = formData.getAll("files").filter((it) => typeof it === "object");
 
-  const requestBody = await ctx.req.parseBody({ all: true });
-  const files = extractFiles(requestBody["file"]);
   logger.info("saving files", { numberOfFiles: files.length });
   await Promise.all(
     files.map(async (f) => {
@@ -70,8 +62,11 @@ app.post("/api/files", async (ctx) => {
       const filepath = path.join(filePath, token.namespace, filename);
       await ensureFile(filepath);
       const stream = createWriteStream(filepath);
-      return new Promise((res) =>
-        Readable.from(f.stream()).pipe(stream).once("close", res),
+      await new Promise((res, rej) =>
+        Readable.from(f.stream())
+          .pipe(stream)
+          .once("close", res)
+          .once("error", rej),
       );
     }),
   );

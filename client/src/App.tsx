@@ -65,7 +65,7 @@ export function App() {
     xhr.timeout = 1200_000; // 20 minutes
 
     const formData = new FormData();
-    files.forEach((it) => formData.append("file", it));
+    files.forEach((it) => formData.append("files", it));
 
     xhr.upload.onloadstart = (e) => {
       setProgress({ total: e.total, current: 0, speed: "0 kbs/s" });
