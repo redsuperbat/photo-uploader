@@ -31,7 +31,7 @@ const mime = new MimeLookup();
 const app = new Hono();
 
 app.use((ctx, next) => {
-  logger.info("incoming request", { url: ctx.req.url });
+  logger.info("incoming request", { url: ctx.req.url, method: ctx.req.method });
   return next();
 });
 
