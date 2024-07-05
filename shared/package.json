@@ -1,0 +1,8 @@
+{
+  "name": "@photo-uploader/shared",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "type": "module",
+  "author": "Max Netterberg",
+  "license": "MIT"
+}

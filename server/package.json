@@ -12,6 +12,7 @@
   "dependencies": {
     "@hono/node-server": "^1.11.4",
     "@photo-uploader/client": "*",
+    "@photo-uploader/shared": "*",
     "fs-extra": "^11.2.0",
     "hono": "^4.4.10",
     "swiss-log": "^0.1.10"

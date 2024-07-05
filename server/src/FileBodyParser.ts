@@ -1,3 +1,4 @@
+import { PhotoUploaderFile } from "@photo-uploader/shared";
 import { WriteStream, createWriteStream } from "fs";
 
 export interface FilePathProvider {
@@ -5,96 +6,80 @@ export interface FilePathProvider {
 }
 
 export class FileWriter {
-  readonly #fileNameIndicator = new Uint8Array([13, 13, 13, 13]);
-  readonly #textDecoder = new TextDecoder();
-  readonly #filePathProvider: FilePathProvider;
+  readonly #file: PhotoUploaderFile;
+  readonly #currentFileStream: WriteStream;
 
-  #buffer = new Uint8Array();
-  #fileContentLength?: number;
-  #currentFileStream?: WriteStream;
+  #count = 0;
 
-  constructor(opts: { fileNameFormatter: FilePathProvider }) {
-    this.#filePathProvider = opts.fileNameFormatter;
-  }
-
-  #isEqual(a: Uint8Array, b: Uint8Array): boolean {
-    if (a.length !== b.length) {
-      return false;
-    }
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  #startOfFile(): boolean {
-    const b = this.#fileNameIndicator;
-    const a = this.#buffer.slice(0, 4);
-    return this.#isEqual(a, b);
-  }
-
-  #clear() {
-    this.#buffer = new Uint8Array();
-  }
-
-  #writeAndClose(chunk: Uint8Array) {
-    this.#currentFileStream?.write(chunk);
-    this.#currentFileStream?.close();
-    this.#currentFileStream = undefined;
+  constructor(opts: {
+    filePathProvider: FilePathProvider;
+    file: PhotoUploaderFile;
+  }) {
+    this.#file = opts.file;
+    this.#currentFileStream = createWriteStream(
+      opts.filePathProvider.provide(opts.file.name),
+    );
   }
 
   next(chunk: Uint8Array): void {
-    this.#buffer = chunk;
+    const chunkStartIndex = this.#count;
+    const chunkEndIndex = this.#count + chunk.length;
+    const fileStartIndex = this.#file.streamStartIndex;
+    const fileEndIndex = this.#file.size + this.#file.streamStartIndex;
 
-    // This means we have a file name
-    if (this.#startOfFile()) {
-      // File name length is located at index 4
-      const fileNameLength = this.#buffer[4];
-      this.#buffer = this.#buffer.slice(5);
+    this.#count = chunkEndIndex;
 
-      const fileNameBuffer = this.#buffer.slice(0, fileNameLength);
-      this.#buffer = this.#buffer.slice(fileNameLength);
-
-      const filepath = this.#filePathProvider.provide(
-        this.#textDecoder.decode(fileNameBuffer),
-      );
-      this.#currentFileStream = createWriteStream(filepath);
-
-      this.#fileContentLength = this.#buffer[0];
-      this.#buffer = this.#buffer.slice(1);
-      console.log({
-        contentLength: this.#fileContentLength,
-        filepath,
-      });
+    // this file is not ready yet
+    if (chunkEndIndex < fileStartIndex) {
+      return;
     }
 
-    if (this.#fileContentLength! > this.#buffer.length) {
-      this.#currentFileStream!.write(this.#buffer);
-      this.#fileContentLength! -= this.#buffer.length;
-    } else if (this.#fileContentLength! < this.#buffer.length) {
-      const rest = this.#buffer.slice(this.#fileContentLength!);
-      const last = this.#buffer.slice(0, this.#fileContentLength);
-      this.#writeAndClose(last);
-      // Start new file
-      this.next(rest);
-    } else {
-      this.#writeAndClose(this.#buffer);
+    // this file has been written already
+    if (chunkStartIndex > fileEndIndex) {
+      return;
     }
-    this.#clear();
+
+    // Handle first file in stream
+    if (fileStartIndex === 0 && chunkEndIndex < fileEndIndex) {
+      this.#currentFileStream.write(chunk);
+      return;
+    }
+
+    // In the middle of a late chunk
+    if (fileEndIndex < chunkEndIndex && fileEndIndex > chunkStartIndex) {
+      const endOffset = fileEndIndex - chunkStartIndex;
+      this.#currentFileStream.write(chunk.slice(0, endOffset));
+      return;
+    }
+
+    // In the start of a early chunk
+    if (fileStartIndex > chunkStartIndex && fileStartIndex < chunkEndIndex) {
+      const startOffset = fileStartIndex - chunkStartIndex;
+      this.#currentFileStream.write(chunk.slice(startOffset));
+      return;
+    }
+
+    // If the chunk is in the middle just write it
+    if (chunkStartIndex > fileStartIndex && chunkEndIndex < fileEndIndex) {
+      this.#currentFileStream.write(chunk);
+      return;
+    }
+  }
+
+  close() {
+    this.#currentFileStream.close();
   }
 }
 
 export class StreamReader {
   #reader: ReadableStreamDefaultReader<Uint8Array>;
-  #fileWriter: FileWriter;
+  #fileWriters: FileWriter[];
 
   constructor(opts: {
     stream: ReadableStream<Uint8Array>;
-    fileWriter: FileWriter;
+    fileWriters: FileWriter[];
   }) {
-    this.#fileWriter = opts.fileWriter;
+    this.#fileWriters = opts.fileWriters;
     this.#reader = opts.stream.getReader();
   }
 
@@ -107,7 +92,7 @@ export class StreamReader {
         return;
       }
 
-      this.#fileWriter.next(value);
+      this.#fileWriters.forEach((it) => it.next(value));
       push();
     };
     push();
@@ -117,6 +102,7 @@ export class StreamReader {
     const self = this;
     return new ReadableStream<Uint8Array>({
       start: this.#start.bind(self),
+      cancel: () => this.#fileWriters.forEach((it) => it.close()),
     });
   }
 }

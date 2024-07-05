@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@picocss/pico": "^2.0.6",
-    "solid-js": "^1.8.17"
+    "solid-js": "^1.8.17",
+    "@photo-uploader/shared": "*"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

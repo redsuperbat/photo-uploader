@@ -1,5 +1,9 @@
 import { createSignal, Show, createResource } from "solid-js";
 import { Toast, useToast } from "./Toast";
+import {
+  PhotoUploaderFile,
+  FileMetadataSerializer,
+} from "@photo-uploader/shared";
 
 const TOKEN_HEADER = "x-rsb-token";
 
@@ -29,6 +33,7 @@ async function pipeStreamIntoController(
     controller.enqueue(value);
   }
 }
+const fileSerializer = new FileMetadataSerializer();
 
 export function App() {
   const [progress, setProgress] = createSignal<{
@@ -78,23 +83,9 @@ export function App() {
     }
     const start = Date.now();
 
-    const fileNameIndicator = new Uint8Array([13, 13, 13, 13]);
-    const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         for (const file of files) {
-          controller.enqueue(fileNameIndicator);
-          const fileNameBuf = encoder.encode(file.name);
-          const fileNameLengthBuf = new Uint8Array([fileNameBuf.length]);
-          controller.enqueue(fileNameLengthBuf);
-          controller.enqueue(fileNameBuf);
-          const fileContentLengthBuf = new Uint8Array([file.size]);
-          controller.enqueue(fileContentLengthBuf);
-          console.log({
-            size: file.size,
-            length: fileNameLengthBuf,
-            fileContentLengthBuf,
-          });
           await pipeStreamIntoController(file.stream(), controller);
         }
         controller.close();
@@ -143,9 +134,11 @@ export function App() {
 
     xhr.open("POST", "/api/files", true);
     xhr.setRequestHeader(TOKEN_HEADER, token);
-    console.log("creating blob");
+    xhr.setRequestHeader(
+      PhotoUploaderFile.HEADER,
+      fileSerializer.deserialize(files),
+    );
     const blob = await new Response(stream).blob();
-    console.log("blob created");
     xhr.send(blob);
   };
 
