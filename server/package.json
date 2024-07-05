@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file .env --import tsx/esm src/index.ts",
-    "build": "tsc"
+    "build": "node build.js"
   },
   "author": "Max Netterberg",
   "license": "ISC",
@@ -20,6 +20,8 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.9",
+    "esbuild": "^0.23.0",
+    "esbuild-node-externals": "^1.13.1",
     "tsx": "^4.16.0",
     "typescript": "^5.5.2"
   }
