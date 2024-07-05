@@ -1,32 +1,9 @@
-# # # # #
-# DEPS  #
-# # # # #
-FROM node:lts-alpine as deps
-
-COPY . .
+FROM node:lts-alpine 
 
 RUN yarn install
 
-# # # # #
-# BUILD #
-# # # # #
-FROM node:lts-alpine as builder
-
-COPY . .
-
-COPY --from=deps node_modules node_modules
-
 RUN yarn build
 
-# # # # #
-#  RUN  #
-# # # # #
-FROM node:lts-alpine as runner
-
-COPY --from=deps node_modules node_modules
-
-COPY --from=builder server/dist dist
-
-COPY server/package.json package.json
+RUN cd server
 
 CMD ["node", "dist/index.js"]
