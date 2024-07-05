@@ -14,6 +14,22 @@ function formatBytes(bytes: number): string {
   return `${size.toFixed(2)} ${sizes[i]}`;
 }
 
+async function pipeStreamIntoController(
+  stream: ReadableStream<Uint8Array>,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+) {
+  const reader = stream.getReader();
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      reader.releaseLock();
+      break;
+    }
+    controller.enqueue(value);
+  }
+}
+
 export function App() {
   const [progress, setProgress] = createSignal<{
     total: number;
@@ -61,11 +77,32 @@ export function App() {
       return;
     }
     const start = Date.now();
+
+    const fileNameIndicator = new Uint8Array([13, 13, 13, 13]);
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for (const file of files) {
+          controller.enqueue(fileNameIndicator);
+          const fileNameBuf = encoder.encode(file.name);
+          const fileNameLengthBuf = new Uint8Array([fileNameBuf.length]);
+          controller.enqueue(fileNameLengthBuf);
+          controller.enqueue(fileNameBuf);
+          const fileContentLengthBuf = new Uint8Array([file.size]);
+          controller.enqueue(fileContentLengthBuf);
+          console.log({
+            size: file.size,
+            length: fileNameLengthBuf,
+            fileContentLengthBuf,
+          });
+          await pipeStreamIntoController(file.stream(), controller);
+        }
+        controller.close();
+      },
+    });
+
     const xhr = new XMLHttpRequest();
     xhr.timeout = 1200_000; // 20 minutes
-
-    const formData = new FormData();
-    files.forEach((it) => formData.append("files", it));
 
     xhr.upload.onloadstart = (e) => {
       setProgress({ total: e.total, current: 0, speed: "0 kbs/s" });
@@ -87,6 +124,7 @@ export function App() {
       handleEnd();
     };
     const handleSuccess = () => {
+      if (xhr.status > 200) return;
       toast.success(`${files.length} Files uploaded successfully`);
       handleEnd();
       setTimeout(() => refetch(), 2000);
@@ -105,7 +143,10 @@ export function App() {
 
     xhr.open("POST", "/api/files", true);
     xhr.setRequestHeader(TOKEN_HEADER, token);
-    xhr.send(formData);
+    console.log("creating blob");
+    const blob = await new Response(stream).blob();
+    console.log("blob created");
+    xhr.send(blob);
   };
 
   return (

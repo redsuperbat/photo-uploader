@@ -1,15 +1,13 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { ensureDir, ensureFile, ensureFileSync } from "fs-extra";
 import { Hono } from "hono";
 import { Logger } from "swiss-log";
 import { TokenRepository, TokenSerializer } from "./TokenRepo.js";
-import { ensureDir, ensureFile } from "fs-extra";
 
 import path from "node:path";
-import { createWriteStream } from "node:fs";
 import { Readable } from "node:stream";
-import { hash } from "node:crypto";
-import { MimeLookup } from "./mime.js";
+import { FileWriter, StreamReader } from "./FileBodyParser.js";
 
 const logger = Logger.withDefaults();
 const port = parseInt(process.env.PORT ?? "44445");
@@ -27,7 +25,6 @@ const tokenRepo = new TokenRepository({
   tokenFilePath,
   serializer,
 });
-const mime = new MimeLookup();
 const app = new Hono();
 
 app.use((ctx, next) => {
@@ -35,11 +32,14 @@ app.use((ctx, next) => {
   return next();
 });
 
-function createFilename(f: File): string {
-  const name = hash("md5", f.name.concat(f.type).concat(f.size.toString()));
-  const ext = mime.lookup(f.type);
-  return `${name}.${ext}`;
-}
+app.onError((error, ctx) => {
+  logger.error("unhandled error", {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  });
+  return ctx.json({ message: "Internal Server Error" }, 500);
+});
 
 app.post("/api/files", async (ctx) => {
   const tokenId = ctx.req.header("x-rsb-token");
@@ -52,28 +52,26 @@ app.post("/api/files", async (ctx) => {
   if (!token) {
     return ctx.json({ message: "invalid token" }, 401);
   }
-  const formData = await ctx.req.formData();
-  const files = formData.getAll("files").filter((it) => typeof it === "object");
-
-  logger.info("saving files", { numberOfFiles: files.length });
-  await Promise.all(
-    files.map(async (f) => {
-      const filename = createFilename(f);
-      const filepath = path.join(filePath, token.namespace, filename);
-      await ensureFile(filepath);
-      const stream = createWriteStream(filepath);
-      await new Promise((res, rej) =>
-        Readable.from(f.stream())
-          .pipe(stream)
-          .once("close", res)
-          .once("error", rej),
-      );
+  const parser = new StreamReader({
+    stream: ctx.req.raw.body!,
+    fileWriter: new FileWriter({
+      fileNameFormatter: {
+        provide(filename) {
+          const filepath = path.join(filePath, token.namespace, filename);
+          ensureFileSync(filepath);
+          return filepath;
+        },
+      },
     }),
+  });
+
+  await new Promise<void>((res, rej) =>
+    Readable.from(parser.stream()).once("close", res).once("error", rej),
   );
 
   await tokenRepo.update(tokenId, {
     lastUsed: new Date(),
-    uploads: token.uploads + files.length,
+    uploads: (token.uploads += 1),
   });
 
   return ctx.json({ message: "ok" }, 200);
