@@ -151,7 +151,7 @@ resource "kubernetes_deployment_v1" "deploy" {
           volume_mount {
             name       = "photoprism"
             sub_path   = "./originals/external-uploads"
-            mount_path = "/received"
+            mount_path = "/server/received"
           }
 
           volume_mount {

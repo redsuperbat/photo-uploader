@@ -114,7 +114,7 @@ export function App() {
       handleEnd();
     };
     const handleSuccess = () => {
-      if (xhr.status > 200) return;
+      if (xhr.status !== 200) return;
       toast.success(`${files.length} Files uploaded successfully`);
       handleEnd();
       setTimeout(() => refetch(), 2000);
@@ -137,6 +137,7 @@ export function App() {
       PhotoUploaderFile.HEADER,
       fileSerializer.deserialize(files),
     );
+    setProgress({ total: 1, current: 0, speed: "0 kbs/s" });
     const blob = await new Response(stream).blob();
     xhr.send(blob);
   };
