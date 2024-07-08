@@ -47,7 +47,6 @@ export function App() {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
     if (!token) {
-      toast.error("No token in url");
       return;
     }
 
@@ -155,7 +154,7 @@ export function App() {
       <input
         id="upload"
         style={{ display: "none" }}
-        onInput={handleFileUpload}
+        onInput={(e) => handleFileUpload(e)}
         accept=".jpg,.jpeg,.png,.mp4,.mov"
         type="file"
         multiple
