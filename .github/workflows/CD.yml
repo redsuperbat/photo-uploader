@@ -20,11 +20,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: .
           push: true
-          file: ./server/Dockerfile
           tags: maxrsb/photo-uploader:${{ github.sha }}
-          platforms: linux/amd64
 
       - name: Setup Terraform CLI
         uses: hashicorp/setup-terraform@v3

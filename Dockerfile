@@ -6,6 +6,6 @@ RUN yarn install
 
 RUN yarn build
 
-RUN cd server
+WORKDIR /server
 
-CMD ["node", "dist/index.js"]
+CMD [ "node", "dist/index.js"]
